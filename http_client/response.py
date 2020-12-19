@@ -1,6 +1,6 @@
 import re
 
-from client.request import Request
+from http_client.request import Request
 
 re_code = r' [\d]* '
 re_protocol = r'[\d\.\d]* '
@@ -32,37 +32,53 @@ class Response:
     def from_bytes(cls, data: bytes,
                    req: Request) -> 'Response':
         response = data.decode(DECODING)
-        code = (re.search(re_code, response)).group(0)
-        protocol = (re.search(re_protocol, response)).group(0)
-        message = response.split('\r\n\r\n')[1]
-        charset = ''
-        headers = {}
-        location = ''
+        lines = response.split('\r\n\r\n')
+        re_headers = lines[0]
 
-        for item in response.split('\r\n\r\n')[0].split('\r\n'):
-            s = re.search(re_header, item)
+        code = cls.re_search(re_code, response)
+        protocol = cls.re_search(re_protocol, response)
+        charset, location, headers = cls.parse_headers(
+            re_headers.split('\r\n'))
 
-            if s is not None:
-                headers[s.group('header')] = s.group('value')
-                if s.group('header') == 'Content-Type' \
-                        or s.group('header') == 'content-type':
-                    f = re.search(re_charset, s.group('value'))
-                    if f is not None:
-                        charset = f.group('charset')
-                    else:
-                        charset = 'utf-8'
-
-                if s.group('header') == 'Location' \
-                        or s.group('header') == 'location':
-                    location = s.group('value')
-
-        return cls(message=message,
+        return cls(message=lines[1],
                    charset=charset,
                    code=int(code),
                    location=location,
                    protocol=float(protocol),
                    headers=headers,
                    request=req)
+
+    @staticmethod
+    def re_search(regular_expressions, response):
+        return re.search(regular_expressions,
+                         response).group(0)
+
+    @classmethod
+    def parse_headers(cls, lines):
+        charset, location, headers = '', '', {}
+        for line in lines:
+            header = re.search(re_header, line)
+            if header:
+                headers[header.group('header')] = header.group('value')
+                charset = cls.check_and_add_charset(header)
+                location = cls.check_and_add_location(header)
+
+        return charset, location, headers
+
+    @staticmethod
+    def check_and_add_charset(header):
+        if header.group('header').lower() == 'content-type':
+            f = re.search(re_charset, header.group('value'))
+            return f.group('charset') \
+                if f is not None \
+                else 'utf-8'
+        return ''
+
+    @staticmethod
+    def check_and_add_location(header):
+        if header.group('header').lower() == 'location':
+            return header.group('value')
+        return ''
 
     @property
     def message(self):
@@ -78,7 +94,9 @@ class Response:
 
     @property
     def location(self):
-        return self._location
+        if 'Location' in self._headers.keys():
+            return self._headers['Location']
+        return ''
 
     @property
     def protocol(self):

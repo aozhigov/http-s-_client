@@ -1,6 +1,6 @@
 from enum import Enum
 
-from client.exceptions import ValueRequestTypeException
+from http_client.exceptions import ValueRequestTypeException
 
 
 class Method(Enum):

@@ -7,11 +7,11 @@ with open("requirements.txt") as f:
     requirements = [i.strip() for i in f]
 
 setuptools.setup(
-    name="http(s)-client",
+    name="http(s)-http_client",
     version="1.0",
     author="Andrey Ozhigov",
     author_email="andreyozhigoff@yandex.ru",
-    description="A simple http(s)-client",
+    description="A simple http(s)-http_client",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),

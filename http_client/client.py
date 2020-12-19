@@ -1,14 +1,14 @@
 import ssl
 from socket import socket, AF_INET, SOCK_STREAM
 
-from client.exceptions import ConnectException
-from client.request import Request
-from client.response import Response
+from http_client.exceptions import ConnectException
+from http_client.request import Request
+from http_client.response import Response
 
 CHUNK = 1024
 
 
-class MyClient:
+class Client:
     @staticmethod
     def _get_response(sock, request: Request):
         response = bytearray()

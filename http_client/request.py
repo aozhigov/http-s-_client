@@ -2,8 +2,9 @@ from pathlib import Path
 
 from yarl import URL
 
-from client.exceptions import UnreadableFileException, HTTPSClientException
-from client.method import Method
+from http_client.exceptions import (UnreadableFileException,
+                                    HTTPSClientException)
+from http_client.method import Method
 
 ENCODING = 'ISO-8859-1'
 
@@ -12,7 +13,7 @@ class Request:
     def __init__(self,
                  url: str,
                  method: str = None,
-                 headers: dict = None,
+                 headers: list = None,
                  timeout: float = None,
                  reference: str = None,
                  cookie: str = None,
@@ -34,21 +35,23 @@ class Request:
         self._headers = {}
         self._prepare_headers(headers)
 
-    def _prepare_headers(self, headers: dict):
+    def _prepare_headers(self, headers: list):
         if headers:
             for header in headers:
                 separator_ind = header.find(':')
                 value = header[separator_ind + 1:].strip()
                 self.headers[header[0:separator_ind]] = value
 
-        self.set_value_in_headers('reference', self._reference)
-        self.set_value_in_headers('cookie', self._cookie)
-        self.set_value_in_headers('agent', self._agent)
+        self.set_value_in_headers('Reference', self._reference)
+        self.set_value_in_headers('Cookie', self._cookie)
+        self.set_value_in_headers('User-Agent', self._agent)
+        self.set_value_in_headers('Host', self.url.host)
+        self.set_value_in_headers('Connection', 'close')
 
         if self._cookie_file:
             if Path(self._cookie_file).exists():
                 with open(self._cookie_file, 'r') as f:
-                    self.headers['cookie'] = f.read()
+                    self.headers['Cookie'] = f.read()
             else:
                 raise HTTPSClientException(self._cookie_file)
 
@@ -62,23 +65,20 @@ class Request:
     def __bytes__(self):
         result = bytearray(f'{self._method.name} {self.url.path} '
                            f'{self._protocol}\r\n', ENCODING)
-        result += bytes(f'Host: {self.url.host}\r\n', ENCODING)
-        result += bytes(f'Connection: close\r\n', ENCODING)
-
         for header, value in self.headers.items():
             result += bytes(f'{header}: {value}\r\n', ENCODING)
 
-        if len(self._data) != 0:
-            result += bytes(f'Content-Length: {len(self._data)}\r\n',
-                            ENCODING)
-
+        result += bytes(f'Content-Length: {len(self._data)}\r\n',
+                        ENCODING)
         result += bytes(f'\r\n{self._data}', ENCODING)
 
         return bytes(result)
 
     @staticmethod
     def prepare_data(data: str = None):
-        result_data = data
+        result_data = ''
+        if data:
+            result_data = data
 
         if data is not None and data != '' and Path(data).exists():
             try:
@@ -116,7 +116,7 @@ class Request:
     @cookie.setter
     def cookie(self, value: str):
         self._cookie = value
-        self._prepare_headers({})
+        self._prepare_headers([])
 
     @property
     def cookie_file(self):
@@ -137,7 +137,7 @@ class Request:
     @user_agent.setter
     def user_agent(self, value):
         self._agent = value
-        self._prepare_headers({})
+        self._prepare_headers([])
 
     @property
     def headers(self):

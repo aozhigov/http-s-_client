@@ -2,9 +2,9 @@ import sys
 from argparse import ArgumentParser
 from typing import List
 
-from client.my_client import MyClient
-from client.request import Request
-from client.response import Response
+from http_client.client import Client
+from http_client.request import Request
+from http_client.response import Response
 
 
 def get_response(args, response: Response):
@@ -47,7 +47,7 @@ def get_parser():
     group_data.add_argument('-f', '--file', type=str,
                             help='Set data from file')
 
-    parser.add_argument('-r', '--request', type=str,
+    parser.add_argument('-x', '--request', type=str,
                         help='Set request method:'
                              'GET | POST | PUT | CONNECT | '
                              'PATCH | OPTIONS | DELETE | '
@@ -115,7 +115,7 @@ def main():
                       data=args.data or args.file,
                       redirect=args.redirect)
 
-    client = MyClient()
+    client = Client()
     response = client.do_request(request)
     get_response(args, response)
 
