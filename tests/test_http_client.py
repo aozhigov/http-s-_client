@@ -2,71 +2,53 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from http_client.__main__ import get_parser
+from http_client.client import Client
 from http_client.exceptions import ValueRequestTypeException, \
     HTTPSClientException, ConnectException, UnreadableFileException
-from http_client.client import Client
 from http_client.request import Request
 from http_client.response import Response
 
 
 class TestHttpClient(unittest.TestCase):
-
     def test_check_get_request(self):
-        args = get_parser().parse_args(
-            ['http://ptsv2.com/t/lp5td-1586273836/post'])
-        req = Request(protocol=args.protocol,
-                      method=args.request,
-                      timeout=float(args.timeout),
-                      data=args.data, url=args.url)
+        req = Request(protocol='HTTP/1.1',
+                      method='GET',
+                      timeout=1000,
+                      data='',
+                      url='http://ptsv2.com/t/lp5td-1586273836/post')
         assert ('GET /t/lp5td-1586273836/post HTTP/1.1\r\n' +
                 'Host: ptsv2.com\r\n' +
                 'Connection: close\r\n' +
                 'Content-Length: 0\r\n\r\n') == str(req)
 
     def test_check_post_request_text(self):
-        args = get_parser().parse_args(
-            ['-d', 'Hello, World!',
-             'http://ptsv2.com/t/lp5td-1586273836/post',
-             '-x', 'POST'])
-        temp = Request.prepare_data(data=args.data)
-        req = Request(protocol=args.protocol,
-                      method=args.request,
-                      timeout=float(args.timeout),
-                      data=temp, url=args.url)
-        e = str(req)
+        req = Request(protocol='HTTP/1.1',
+                      method='POST',
+                      timeout=1000,
+                      data='Hello, World!',
+                      url='http://ptsv2.com/t/lp5td-1586273836/post')
         assert ('POST /t/lp5td-1586273836/post HTTP/1.1\r\n' +
                 'Host: ptsv2.com\r\n' +
                 'Connection: close\r\n' +
                 'Content-Length: 13\r\n\r\n' +
-                'Hello, World!') == e
+                'Hello, World!') == str(req)
 
     def test_bytes(self):
-        args = get_parser().parse_args(
-            ['-d', 'Hello',
-             'http://ptsv2.com/t/lp5td-1586273836/post',
-             '-x', 'POST',
-             '-a', 'Mozilla/5.0',
-             '-t', '3000',
-             '-g', '10'])
-        req = Request(protocol=args.protocol,
-                      method=args.request,
-                      timeout=float(args.timeout),
-                      data=args.data, url=args.url,
-                      agent=args.agent)
+        req = Request(protocol='HTTP/1.1',
+                      method='POST',
+                      timeout=1000,
+                      data='Hello',
+                      url='http://ptsv2.com/t/lp5td-1586273836/post',
+                      agent='Mozilla/5.0')
         e = str(req)
         b = bytes(req).decode('ISO-8859-1')
         assert b == e
 
     def test_check_post_request_from_file(self):
         path = Path.cwd() / 'tests' / 'resources' / 'test_text.txt'
-        args = get_parser().parse_args(
-            ['-f', str(path),
-             'http://ptsv2.com/t/lp5td-1586273836/post',
-             '-x', 'POST'])
         with path.open('w+') as f:
             f.write('abracadabra')
-        assert 'abracadabra' == Request.prepare_data(data=args.file)
+        assert 'abracadabra' == Request.prepare_data(data=str(path))
 
     def test_response(self):
         text = 'HTTP/1.1 200 Ok\r\n' \
@@ -85,24 +67,18 @@ class TestHttpClient(unittest.TestCase):
 
     def test_prepare_headers(self):
         path = Path.cwd() / 'tests' / 'resources' / 'cookie.txt'
-        args = get_parser().parse_args(
-            ['http://ptsv2.com/t/lp5td-1586273836/post',
-             '-H', 'Content-Length: 30',
-             'Pory: tau',
-             '-l', 'https://vk.com/',
-             '-c', 'income=1',
-             '-C', str(path),
-             '-a', 'Chrome'])
         with path.open('w') as f:
             f.write('hello')
 
-        req = Request(method=args.request,
-                      agent=args.agent,
-                      cookie_file=args.cookie_file,
-                      cookie=args.cookie,
-                      reference=args.reference,
-                      headers=args.headers, url=args.url,
-                      data=args.data)
+        req = Request(method='GET',
+                      agent='Chrome',
+                      cookie_file=str(path),
+                      cookie='income=1',
+                      reference='https://vk.com/',
+                      headers=['Content-Length: 30',
+                               'Pory: tau'],
+                      url='http://ptsv2.com/t/lp5td-1586273836/post',
+                      data='')
         assert {'Content-Length': '30',
                 'Pory': 'tau', 'Reference': 'https://vk.com/',
                 'Cookie': 'hello', 'User-Agent': 'Chrome',
@@ -116,12 +92,11 @@ class TestHttpClient(unittest.TestCase):
                              'I hope you have a lovely day!',
                      charset='', code=200, protocol='',
                      headers=dict(), request=None)
-        args = get_parser().parse_args(
-            ['http://ptsv2.com/t/lp5td-1586273836/post'])
-        req = Request(protocol=args.protocol,
-                      method=args.request,
-                      timeout=float(args.timeout),
-                      data=args.data, url=args.url)
+        req = Request(protocol='HTTP/1.1',
+                      method='GET',
+                      timeout=1000,
+                      data='',
+                      url='http://ptsv2.com/t/lp5td-1586273836/post')
         data = client_mock.do_request(req)
         assert data is not None
         assert data.message == 'Thank you for this dump. ' \
@@ -134,12 +109,11 @@ class TestHttpClient(unittest.TestCase):
             Response(code=200,
                      message='<!DOCTYPE html>', charset='',
                      protocol='', headers=dict(), request=None)
-        args = get_parser().parse_args(
-            ['https://habr.com/ru/'])
-        req = Request(protocol=args.protocol,
-                      method=args.request,
-                      timeout=float(args.timeout),
-                      data=args.data, url=args.url)
+        req = Request(protocol='HTTP/1.1',
+                      method='GET',
+                      timeout=1000,
+                      data='',
+                      url='https://habr.com/ru/')
         data = client_mock.do_request(req)
         assert data is not None
         assert data.code == 200
@@ -153,40 +127,36 @@ class TestHttpClient(unittest.TestCase):
         assert 'hello' == f('tests/resources/cookie.txt')
 
     def test_exceptions(self):
-        args = get_parser().parse_args(
-            ['https://habr.com/ru/', '-x', 'HHHHEEE'])
         self.assertRaises(ValueRequestTypeException,
                           Request,
-                          protocol=args.protocol,
-                          method=args.request,
-                          timeout=float(args.timeout),
-                          data=args.data, url=args.url)
-        args = get_parser().parse_args(
-            ['https://habr.com/ru/', '-C', 'sdzc.txt'])
+                          protocol='HTTP/1.1',
+                          method='HHHHEEE',
+                          timeout=1000,
+                          data='',
+                          url='https://habr.com/ru/')
         self.assertRaises(HTTPSClientException,
                           Request,
-                          protocol=args.protocol,
-                          method=args.request,
-                          timeout=float(args.timeout),
-                          data=args.data, url=args.url,
-                          cookie_file=args.cookie_file)
-        args = get_parser().parse_args(
-            ['httff://habrweerwd.erff/ru/'])
-        client = Client()
-        req = Request(protocol=args.protocol,
-                      method=args.request,
-                      timeout=float(args.timeout),
-                      data=args.data, url=args.url)
+                          protocol='HTTP/1.1',
+                          method='GET',
+                          timeout=1000,
+                          data='',
+                          url='https://habr.com/ru/',
+                          cookie_file='sdzc.txt')
+        client = Client(10)
+        req = Request(protocol='HTTP/1.1',
+                      method='GET',
+                      timeout=1000,
+                      data='',
+                      url='httff://habrweerwd.erff/ru/')
         self.assertRaises(ConnectException, client.do_request, req)
-        args = get_parser().parse_args(
-            ['https://habr.com/ru/', '-f', str(Path.cwd())])
         self.assertRaises(UnreadableFileException,
                           Request,
-                          protocol=args.protocol,
-                          method=args.request,
-                          timeout=float(args.timeout),
-                          data=args.file, url=args.url,
-                          cookie_file=args.cookie_file)
+                          protocol='HTTP/1.1',
+                          method='GET',
+                          timeout=1000,
+                          data='',
+                          url='https://habr.com/ru/',
+                          cookie_file=str(Path.cwd()))
 
     @patch('http_client.client.Client')
     def test_redirect(self, mock_request):
@@ -195,21 +165,19 @@ class TestHttpClient(unittest.TestCase):
             Response(message='<!DOCTYPE html>',
                      code=200, protocol='', charset='utf-8',
                      headers=dict(), request=None)
-        args = get_parser().parse_args(
-            ['https://vk.com/feed'])
-        req = Request(protocol=args.protocol,
-                      method=args.request,
-                      timeout=float(args.timeout),
-                      data=args.data, url=args.url,
-                      redirect=10)
-        client = Client()
+        req = Request(protocol='HTTP/1.1',
+                      method='GET',
+                      timeout=1000,
+                      data='',
+                      url='https://vk.com/feed')
+        client = Client(10)
         data = client_mock.do_request(req)
         assert data is not None
         assert data.code == 200
         assert data.message.__contains__('<!DOCTYPE html>')
         assert data.charset.lower() == 'utf-8'
 
-        req.redirect = 0
+        client.max_hops = 0
         self.assertRaises(ConnectException,
                           client.do_request, req)
 

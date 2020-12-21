@@ -2,11 +2,11 @@ import re
 
 from http_client.request import Request
 
-re_code = r' [\d]* '
-re_protocol = r'[\d\.\d]* '
+re_start_line = r'(?P<protocol>[\d\.\d]*) ' \
+                r'(?P<code>[\d]*) (?P<message>[\w]*)'
 re_header = r'(?P<header>[a-zA-Z-]*): (?P<value>[0-9\s\w,.;=/:-]*)'
 re_charset = r'[a-zA-z/]*; charset=(?P<charset>[\w\d-]*)'
-for i in {re_code, re_protocol, re_header, re_charset}:
+for i in {re_start_line, re_header, re_charset}:
     re.compile(i)
 
 DECODING = 'ISO-8859-1'
@@ -32,15 +32,14 @@ class Response:
     def from_bytes(cls, data: bytes,
                    req: Request) -> 'Response':
         response = data.decode(DECODING)
-        lines = response.split('\r\n\r\n')
-        re_headers = lines[0]
+        parts = response.split('\r\n\r\n')
+        lines_headers = parts[0].split('\r\n')
 
-        code = cls.re_search(re_code, response)
-        protocol = cls.re_search(re_protocol, response)
-        headers = cls.parse_headers(
-            re_headers.split('\r\n'))
+        protocol, code, answer_message = cls.start_search(
+            lines_headers[0])
+        headers = cls.parse_headers(lines_headers[1:])
 
-        return cls(message=lines[1],
+        return cls(message=parts[1],
                    code=int(code),
                    protocol=float(protocol),
                    headers=headers,
@@ -48,9 +47,11 @@ class Response:
                    raw_response=response)
 
     @staticmethod
-    def re_search(regular_expressions, response):
-        return re.search(regular_expressions,
-                         response).group(0)
+    def start_search(line: str):
+        find_value = re.search(re_start_line, line)
+        return (find_value.group('protocol'),
+                find_value.group('code'),
+                find_value.group('message'))
 
     @classmethod
     def parse_headers(cls, lines):

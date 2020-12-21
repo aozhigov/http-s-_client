@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from typing import List
 
 from http_client.client import Client
+from http_client.exceptions import HTTPSClientException
 from http_client.request import Request
 from http_client.response import Response
 
@@ -93,32 +94,30 @@ def get_parser():
     parser.add_argument('-p', '--protocol', type=str,
                         help='Set protocol', default='HTTP/1.1')
 
-    parser.add_argument('-g', '--redirect', type=int,
+    parser.add_argument('-g', '--count_redirect', type=int,
                         help='Set max count redirect',
-                        default=50)
+                        default=20)
 
     return parser
 
 
-def main():
-    args = get_parser().parse_args()
+args = get_parser().parse_args()
 
-    request = Request(protocol=args.protocol,
-                      timeout=args.timeout,
-                      headers=args.headers,
-                      method=args.request,
-                      agent=args.agent,
-                      cookie=args.cookie,
-                      cookie_file=args.cookie_file,
-                      reference=args.reference,
-                      url=args.url,
-                      data=args.data or args.file,
-                      redirect=args.redirect)
+request = Request(protocol=args.protocol,
+                  timeout=args.timeout,
+                  headers=args.headers,
+                  method=args.request,
+                  agent=args.agent,
+                  cookie=args.cookie,
+                  cookie_file=args.cookie_file,
+                  reference=args.reference,
+                  url=args.url,
+                  data=args.data or args.file)
 
-    client = Client()
+try:
+    client = Client(int(args.count_redirect))
     response = client.do_request(request)
     get_response(args, response)
-
-
-if __name__ == '__main__':
-    main()
+except HTTPSClientException as e:
+    sys.stderr.write(f'Error: {e.message}')
+    sys.exit(1)

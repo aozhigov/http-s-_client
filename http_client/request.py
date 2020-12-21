@@ -20,9 +20,7 @@ class Request:
                  agent: str = None,
                  cookie_file: str = None,
                  protocol: str = None,
-                 data: str = None,
-                 redirect: int = None):
-        self._redirect = redirect
+                 data: str = None):
         self._data = self.prepare_data(data)
         self._protocol = protocol
         self._reference = reference
@@ -49,8 +47,11 @@ class Request:
     def add_cookie_from_file(self):
         if self._cookie_file:
             if Path(self._cookie_file).exists():
-                with open(self._cookie_file, 'r') as f:
-                    self.headers['Cookie'] = f.read()
+                try:
+                    with open(self._cookie_file, 'r') as f:
+                        self.headers['Cookie'] = f.read()
+                except Exception as e:
+                    raise UnreadableFileException(str(e))
             else:
                 raise HTTPSClientException(self._cookie_file)
 
@@ -148,14 +149,6 @@ class Request:
     @property
     def headers(self):
         return self._headers
-
-    @property
-    def redirect(self):
-        return self._redirect
-
-    @redirect.setter
-    def redirect(self, value):
-        self._redirect = value
 
     @property
     def reference(self):

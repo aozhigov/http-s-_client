@@ -1,3 +1,3 @@
 [tool.coverage.run]
-source = ["client"]
+source = ["http_client"]
 omit = ["*/__main__.py", "setup.py", ".venv/"]
