@@ -114,7 +114,7 @@ class TestHttpClient(unittest.TestCase):
         client_mock.do_request.return_value = \
             Response(message='Thank you for this dump. '
                              'I hope you have a lovely day!',
-                     charset='', code=200, location='', protocol='',
+                     charset='', code=200, protocol='',
                      headers=dict(), request=None)
         args = get_parser().parse_args(
             ['http://ptsv2.com/t/lp5td-1586273836/post'])
@@ -133,7 +133,7 @@ class TestHttpClient(unittest.TestCase):
         client_mock.do_request.return_value = \
             Response(code=200,
                      message='<!DOCTYPE html>', charset='',
-                     location='', protocol='', headers=dict(), request=None)
+                     protocol='', headers=dict(), request=None)
         args = get_parser().parse_args(
             ['https://habr.com/ru/'])
         req = Request(protocol=args.protocol,
@@ -152,7 +152,7 @@ class TestHttpClient(unittest.TestCase):
         assert '' == f('')
         assert 'hello' == f('tests/resources/cookie.txt')
 
-    def test_asserts(self):
+    def test_exceptions(self):
         args = get_parser().parse_args(
             ['https://habr.com/ru/', '-x', 'HHHHEEE'])
         self.assertRaises(ValueRequestTypeException,
@@ -193,7 +193,7 @@ class TestHttpClient(unittest.TestCase):
         client_mock = mock_request()
         client_mock.do_request.return_value = \
             Response(message='<!DOCTYPE html>',
-                     charset='', code=200, location='', protocol='',
+                     code=200, protocol='', charset='utf-8',
                      headers=dict(), request=None)
         args = get_parser().parse_args(
             ['https://vk.com/feed'])
@@ -207,6 +207,7 @@ class TestHttpClient(unittest.TestCase):
         assert data is not None
         assert data.code == 200
         assert data.message.__contains__('<!DOCTYPE html>')
+        assert data.charset.lower() == 'utf-8'
 
         req.redirect = 0
         self.assertRaises(ConnectException,

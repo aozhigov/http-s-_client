@@ -14,19 +14,19 @@ DECODING = 'ISO-8859-1'
 
 class Response:
     def __init__(self, message: str,
-                 charset: str,
                  code: int,
-                 location: str,
                  protocol,
                  headers: dict,
-                 request):
+                 request,
+                 charset: str = '',
+                 raw_response: str = ''):
         self._message = message
         self._charset = charset
         self._code = code
-        self._location = location
         self._protocol = protocol
         self._headers = headers
         self._request = request
+        self._raw_response = raw_response
 
     @classmethod
     def from_bytes(cls, data: bytes,
@@ -37,16 +37,15 @@ class Response:
 
         code = cls.re_search(re_code, response)
         protocol = cls.re_search(re_protocol, response)
-        charset, location, headers = cls.parse_headers(
+        headers = cls.parse_headers(
             re_headers.split('\r\n'))
 
         return cls(message=lines[1],
-                   charset=charset,
                    code=int(code),
-                   location=location,
                    protocol=float(protocol),
                    headers=headers,
-                   request=req)
+                   request=req,
+                   raw_response=response)
 
     @staticmethod
     def re_search(regular_expressions, response):
@@ -55,30 +54,13 @@ class Response:
 
     @classmethod
     def parse_headers(cls, lines):
-        charset, location, headers = '', '', {}
+        headers = {}
         for line in lines:
             header = re.search(re_header, line)
             if header:
                 headers[header.group('header')] = header.group('value')
-                charset = cls.check_and_add_charset(header)
-                location = cls.check_and_add_location(header)
 
-        return charset, location, headers
-
-    @staticmethod
-    def check_and_add_charset(header):
-        if header.group('header').lower() == 'content-type':
-            f = re.search(re_charset, header.group('value'))
-            return f.group('charset') \
-                if f is not None \
-                else 'utf-8'
-        return ''
-
-    @staticmethod
-    def check_and_add_location(header):
-        if header.group('header').lower() == 'location':
-            return header.group('value')
-        return ''
+        return headers
 
     @property
     def message(self):
@@ -86,6 +68,12 @@ class Response:
 
     @property
     def charset(self):
+        if self._charset == '':
+            if 'Content-Type' in self._headers.keys():
+                f = re.search(re_charset, self._headers['Content-Type'])
+                self._charset = f.group('charset') \
+                    if f is not None \
+                    else 'utf-8'
         return self._charset
 
     @property
@@ -109,3 +97,7 @@ class Response:
     @property
     def request(self):
         return self._request
+
+    @property
+    def raw_response(self):
+        return self._raw_response

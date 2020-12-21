@@ -1,3 +1,4 @@
+import io
 import ssl
 from socket import socket, AF_INET, SOCK_STREAM
 
@@ -41,7 +42,8 @@ class Client:
             self._get_response(self._prepare_socket(request), request),
             request)
 
-        if not response.location == '' and request.redirect > 0:
+        if ((response.code == 302 or not response.location == '')
+                and request.redirect > 0):
             temp_request = Request(url=response.location,
                                    reference=request.reference,
                                    cookie=request.cookie,
