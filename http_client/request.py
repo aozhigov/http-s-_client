@@ -36,11 +36,7 @@ class Request:
         self._prepare_headers(headers)
 
     def _prepare_headers(self, headers: list):
-        if headers:
-            for header in headers:
-                separator_ind = header.find(':')
-                value = header[separator_ind + 1:].strip()
-                self.headers[header[0:separator_ind]] = value
+        self.parse_console_headers(headers)
 
         self.set_value_in_headers('Reference', self._reference)
         self.set_value_in_headers('Cookie', self._cookie)
@@ -48,12 +44,22 @@ class Request:
         self.set_value_in_headers('Host', self.url.host)
         self.set_value_in_headers('Connection', 'close')
 
+        self.add_cookie_from_file()
+
+    def add_cookie_from_file(self):
         if self._cookie_file:
             if Path(self._cookie_file).exists():
                 with open(self._cookie_file, 'r') as f:
                     self.headers['Cookie'] = f.read()
             else:
                 raise HTTPSClientException(self._cookie_file)
+
+    def parse_console_headers(self, headers):
+        if headers:
+            for header in headers:
+                separator_ind = header.find(':')
+                value = header[separator_ind + 1:].strip()
+                self._headers[header[0:separator_ind]] = value
 
     def set_value_in_headers(self, headers: str, value):
         if value:
