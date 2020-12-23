@@ -16,14 +16,12 @@ class UnreadableFileException(HTTPSClientException):
 
 class VerboseException(HTTPSClientException):
     def __init__(self):
-        super().__init__(f'The-v key cannot be combined '
-                         f'with the -1 and -0 keys')
+        super().__init__('The -v key can`t be combined with -1 or -0 keys')
 
 
 class ConnectException(HTTPSClientException):
     def __init__(self, link: str):
-        super().__init__(f'Couldn\'t connect to the server. '
-                         f'Check the URL link {link}')
+        super().__init__(f'not connect to the server, check URL {link}')
 
 
 class ValueRequestTypeException(HTTPSClientException):
